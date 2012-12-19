@@ -1,6 +1,6 @@
 
-var canvas_px_w = 800; // width of canvas in pixels
-var canvas_px_h = 300; // height of canvas in pixels
+var canvas_px_w = 400; // width of canvas in pixels
+var canvas_px_h = 400; // height of canvas in pixels
 var tile_px_w = 4; // width of tile in pixels
 var tile_px_h = 4; // height of tile in pixels
 var canvas_t_w = Math.ceil(canvas_px_w / tile_px_w); // width of canvas in tiles
@@ -24,13 +24,21 @@ var t_desert = "rgb(200,200,0)";
 
 var hmap_grass_water = Array();
 
+var temp_count = 0;
+var avg_h_count = 0;
+var avg_h_amount = 0;
+
 $(function()
 {
 	canvas  = document.getElementById('canvas');
 	context = canvas.getContext('2d');
 	
 	init_fullscreen_map();
-	populate_fullscreen_map(5, 5, h_start); // starting point (can be any), starting value (0 to 100)
+	var init_p1 = hmap_grass_water[0][0];
+	var init_p2 = hmap_grass_water[canvas_t_w - 1][0];
+	var init_p3 = hmap_grass_water[canvas_t_w - 1][canvas_t_h - 1];
+	var init_p4 = hmap_grass_water[0][canvas_t_h - 1];
+	populate_fullscreen_map(0, 0, canvas_t_w, canvas_t_h, init_p1, init_p2, init_p3, init_p4);
 	display_map();
 });
 
@@ -46,68 +54,80 @@ function init_fullscreen_map()
 			hmap_grass_water[i][j] = h_start;
 		}
 	}
+	// Give corners random values
+	hmap_grass_water[0][0] = Math.random() * h_max;
+	hmap_grass_water[canvas_t_w - 1][0] = Math.random() * h_max;
+	hmap_grass_water[canvas_t_w - 1][canvas_t_h - 1] = Math.random() * h_max;
+	hmap_grass_water[0][canvas_t_h - 1] = Math.random() * h_max;
 }
 
-var temp_count = 0;
-function populate_fullscreen_map(x, y, h)
+function populate_fullscreen_map(x, y, width, height, p1, p2, p3, p4)
 {
+	var side1, side2, side3, side4, center;
+	var transWidth = ~~(width / 2);
+	var transHeight = ~~(height / 2);
+	
 	temp_count++;
-	$("#temp_count").html(temp_count);
-	var new_h = h + ((Math.random() * h_range) - (h_range / 2)); // new_h set to random value + or - h_range from h
-	new_h = keep_in_range_h(new_h);
-	hmap_grass_water[x][y] = new_h;
-	
-	var north_y = y - 1;
-	if(north_y >= 0) {
-		var north_tile = hmap_grass_water[x][north_y];
-		if(north_tile == h_start)
-		{
-			populate_fullscreen_map(x, north_y, new_h);
-		}
+	$("#temp_count").html("polulate_fullscreen_map recursively called <strong>" + temp_count + "</strong> times.");
+	 
+	//as long as square is bigger then a pixel..
+	if (width > 1 || height > 1)
+	{ 
+		//center is just an average of all 4 corners
+		center = ((p1 + p2 + p3 + p4) / 4);
+		 
+		//randomly shift the middle point
+		center += shift(transWidth + transHeight);
+		 
+		//sides are averages of the connected corners
+		//p1----p2
+		//|     |
+		//p4----p3
+		side1 = ((p1 + p2) / 2);
+		side2 = ((p2 + p3) / 2);
+		side3 = ((p3 + p4) / 2);
+		side4 = ((p4 + p1) / 2);
+		
+		//its possible that middle point was moved out of bounds so correct it here
+		center = normalize(center);
+		side1 = normalize(side1);
+		side2 = normalize(side2);
+		side3 = normalize(side3);
+		side4 = normalize(side4);
+		 
+		//repear operation for each of 4 new squares created
+		//recursion, baby!
+		populate_fullscreen_map(x, y, transWidth, transHeight, p1, side1, center, side4);
+		populate_fullscreen_map(x + transWidth, y, width - transWidth, transHeight, side1, p2, side2, center);
+		populate_fullscreen_map(x + transWidth, y + transHeight, width - transWidth, height - transHeight, center, side2, p3, side3);
+		populate_fullscreen_map(x, y + transHeight, transWidth, height - transHeight, side4, center, side3, p4);
 	}
-	
-	var east_x = x + 1;
-	if(east_x <= canvas_t_w - 1) {
-		var east_tile = hmap_grass_water[east_x][y];
-		if(east_tile == h_start)
-		{
-			populate_fullscreen_map(east_x, y, new_h);
-		}
-	}
-	
-	var south_y = y + 1;
-	if(south_y <= canvas_t_h - 1) {
-		var south_tile = hmap_grass_water[x][south_y];
-		if(south_tile == h_start)
-		{
-			populate_fullscreen_map(x, south_y, new_h);
-		}
-	}
-	
-	var west_x = x - 1;
-	if(west_x >= 0) {
-		var west_tile = hmap_grass_water[west_x][y];
-		if(west_tile == h_start)
-		{
-			populate_fullscreen_map(west_x, y, new_h);
-		}
+	else
+	{
+		new_h = (p1 + p2 + p3 + p4) / 4;
+		//when last square is just a pixel, simply average it from the corners
+		hmap_grass_water[x][y] = new_h;
+		avg_h_amount += new_h;
+		avg_h_count++;
 	}
 }
 
-function keep_in_range_h(num)
+function normalize(val)
 {
-	if(num > h_max) {
-		num = h_max;
-	} else if(num < h_min) {
-		num = h_min;
-	}
-	return num;
+	return (val < 0) ? 0 : (val > h_max) ? h_max : val;
+}
+
+function shift(smallSize)
+{
+	return (Math.random() * h_max) * (smallSize / (canvas_t_w + canvas_t_h)) * 1;
 }
 
 function display_map()
 {
 	// This will clear the screen
 	canvas.width = canvas.width;
+	// Calculate average h amount in map
+	avg_h_amount = avg_h_amount / avg_h_count;
 	
 	for(var i = 0; i < canvas_t_w; i++)
 	{
@@ -117,7 +137,8 @@ function display_map()
 			var y = j * tile_px_h;
 			
 			var cur_tile = hmap_grass_water[i][j];
-			if(cur_tile < h_max / 2)
+			
+			if(cur_tile < avg_h_amount)
 			{
 				context.fillStyle = t_grass;
 			} else {
