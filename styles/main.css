@@ -7,3 +7,7 @@
 	border:#999 1px solid;
 	margin: 25px auto;
 }
+
+#slider-range, #slider-rough {
+	width: 400px;
+}
