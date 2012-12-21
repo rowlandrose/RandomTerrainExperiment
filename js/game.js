@@ -10,6 +10,7 @@ var h_max = 100; // This can be pretty much anything
 var h_min = 0; // this can be pretty much anything 
 var roughness = 1; // Controls the roughness of the tilemap
 var island_middle = 100; // middlepoint h in island tilemap
+var perc_land_as_grass = 60; // percent of land height variation that is grass (vs mountains)
 
 var canvas, context;
 
@@ -28,6 +29,7 @@ var hmap_grass_water = Array();
 var temp_count = 0;
 var avg_h_count = 0;
 var avg_h_amount = 0;
+var top_h_amount = 0;
 var middle_set = 0;
 
 $(function()
@@ -42,6 +44,7 @@ $(function()
             island_middle = ui.value;
             avg_h_count = 0;
             avg_h_amount = 0;
+            top_h_amount = 0;
             load_map();
         }
     });
@@ -57,6 +60,7 @@ $(function()
             roughness = ui.value / 10;
             avg_h_count = 0;
             avg_h_amount = 0;
+            top_h_amount = 0;
             load_map();
         }
     });
@@ -65,6 +69,7 @@ $(function()
     $("#regen").click( function() {
     	avg_h_count = 0;
         avg_h_amount = 0;
+        top_h_amount = 0;
         load_map();
     });
 	
@@ -83,9 +88,10 @@ function load_map()
 	var init_p3 = hmap_grass_water[canvas_t_w - 1][canvas_t_h - 1];
 	var init_p4 = hmap_grass_water[0][canvas_t_h - 1];
 	generate_hmap(hmap_grass_water, 0, 0, canvas_t_w, canvas_t_h, init_p1, init_p2, init_p3, init_p4, island_middle);
-	$("#temp_count").html("generate_hmap recursively called <strong>" + temp_count + "</strong> times.");
-	$("#middle_set").html("Middle H: <strong>" + middle_set + "</strong>");
 	display_map();
+	$("#temp_count").html("generate_hmap recursively called <strong>" + temp_count + "</strong> times.");
+	$("#avg_h").html("Avg H: <strong>" + avg_h_amount + "</strong>");
+	$("#top_h").html("Top H: <strong>" + top_h_amount + "</strong>");
 }
 
 function init_island_hmap(points)
@@ -158,6 +164,9 @@ function generate_hmap(points, x, y, width, height, p1, p2, p3, p4, im)
 		new_h = (p1 + p2 + p3 + p4) / 4;
 		//when last square is just a pixel, simply average it from the corners
 		points[x][y] = new_h;
+		if(top_h_amount < new_h) {
+			top_h_amount = new_h;
+		}
 		avg_h_amount += new_h;
 		avg_h_count++;
 	}
@@ -192,6 +201,8 @@ function display_map()
 			if(cur_tile < avg_h_amount)
 			{
 				context.fillStyle = t_water;
+			} else if(cur_tile > avg_h_amount + ((top_h_amount - avg_h_amount) * (perc_land_as_grass / 100))) {
+				context.fillStyle = t_mountain;
 			} else {
 				context.fillStyle = t_grass;
 			}
