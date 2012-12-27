@@ -42,9 +42,6 @@ $(function()
         slide: function( event, ui ) {
             $( "#amount" ).val( ui.value );
             island_middle = ui.value;
-            avg_h_count = 0;
-            avg_h_amount = 0;
-            top_h_amount = 0;
             load_map();
         }
     });
@@ -58,18 +55,12 @@ $(function()
         slide: function( event, ui ) {
             $( "#amount-rough" ).val( ui.value );
             roughness = ui.value / 10;
-            avg_h_count = 0;
-            avg_h_amount = 0;
-            top_h_amount = 0;
             load_map();
         }
     });
     $( "#amount-rough" ).val( $( "#slider-rough" ).slider( "value" ) );
     
     $("#regen").click( function() {
-    	avg_h_count = 0;
-        avg_h_amount = 0;
-        top_h_amount = 0;
         load_map();
     });
 	
@@ -82,6 +73,9 @@ $(function()
 
 function load_map()
 {
+    avg_h_count = 0;
+    avg_h_amount = 0;
+    top_h_amount = 0;
 	init_island_hmap(hmap_grass_water);
 	var init_p1 = hmap_grass_water[0][0];
 	var init_p2 = hmap_grass_water[canvas_t_w - 1][0];
